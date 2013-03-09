@@ -231,6 +231,10 @@ time_held = {K_UP: 0, K_LEFT: 0, K_RIGHT: 0, K_DOWN: 0}
 
 while True:
     windowSurfaceObj.fill(white)
+    pygame.draw.line(windowSurfaceObj, (0,0,0), (5,10), (5,410), 5)
+    pygame.draw.line(windowSurfaceObj, (0,0,0), (294,10), (294, 410), 5)
+    pygame.draw.line(windowSurfaceObj, (0,0,0), (5,10), (294,10), 5)
+    pygame.draw.line(windowSurfaceObj, (0,0,0), (5,410), (294, 410), 5)
     board.timestep()
     scoreObj = testFont.render("Score: %d" % board.score, False, (0,0,0))
     windowSurfaceObj.blit(scoreObj, (400, 150))
