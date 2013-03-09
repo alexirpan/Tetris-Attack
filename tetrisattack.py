@@ -28,8 +28,8 @@ def three_consecutive_same(li):
     return False
 
 class Block:
-    fall_delay_time = 12
-    gravity_time = 3 # Number of frames to fall 1 cell
+    fall_delay_time = 40
+    gravity_time = 2 # Number of frames to fall 1 cell
     clear_color = pygame.Color(150, 150, 150)
     def __init__(self, color_info):
         self.color_name, self.color = color_info
@@ -39,6 +39,7 @@ class Block:
         self.is_falling = False # Changed by Board class
         self.fell_from_match = False # Changed to True by Board class
         self.clearing = False
+        self.score_on_clear = 10
     def step(self):
         if self.is_falling or self.clearing:
             self.timestep += 1
@@ -170,7 +171,7 @@ class Board:
                     if cell.clearing:
                         if cell.timestep >= cell.clear_time:
                             self.cells[j][i] = None
-                            self.score += 10 * (self.chain ** 2) * (self.num_matched // 2)
+                            self.score += cell.score_on_clear * (self.chain ** 2)
                             # Tell all above that they are falling from a match
                             for k in range(j):
                                 if self.cells[k][i]:
@@ -221,35 +222,42 @@ class Cursor:
 
 cellSize = 40
 leftOffset = 10
-topOffset = 10
+topOffset = 50
 board = Board()
 cursor = Cursor()
 for _ in range(5):
     board.add_next_row()
+time_held = {K_UP: 0, K_LEFT: 0, K_RIGHT: 0, K_DOWN: 0}
 
 while True:
     windowSurfaceObj.fill(white)
     board.timestep()
     scoreObj = testFont.render("Score: %d" % board.score, False, (0,0,0))
     windowSurfaceObj.blit(scoreObj, (400, 150))
+    botVisiblePixels = int(cellSize * (board.time % board.time_to_spawn) / board.time_to_spawn)
+    netTopOffset = topOffset - botVisiblePixels
     for i in range(board.width):
         for j in range(board.height):
             color = board.get_cell(i,j)
             if color is None:
                 color = (255,255,255)
-                pygame.draw.rect(windowSurfaceObj, color, (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
+                pygame.draw.rect(windowSurfaceObj, color, (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
             elif board.cells[j][i].clearing:
-                windowSurfaceObj.blit(gray_map[board.cells[j][i].color_name], (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
+                windowSurfaceObj.blit(gray_map[board.cells[j][i].color_name], (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
             else:
-                windowSurfaceObj.blit(color, (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
-       
+                windowSurfaceObj.blit(color, (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
+    row = board.next_row
+    for i in range(board.width):
+        cell = row[i]
+        windowSurfaceObj.blit(cell.color, (leftOffset + cellSize * i, netTopOffset + cellSize * 9), (0,0,cellSize, botVisiblePixels))
+    
     minutes = board.time // 1800
     sec = (board.time - 1800 * minutes) // 30
     timeObj = testFont.render("Time %d:%02d" % (minutes, sec), False, (0,0,0))
     windowSurfaceObj.blit(timeObj, (400,100))
     
     cursorObj = pygame.image.load('images/cursor.png')
-    windowSurfaceObj.blit(cursorObj, (cellSize * cursor.x, cellSize * cursor.y))
+    windowSurfaceObj.blit(cursorObj, (cellSize * cursor.x + leftOffset - 10, cellSize * cursor.y + netTopOffset - 10))
     
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -257,13 +265,13 @@ while True:
         elif event.type == KEYDOWN:
             if event.key == K_UP:
                 cursor.move_up()
-            elif event.key == K_DOWN:
+            if event.key == K_DOWN:
                 cursor.move_down()
-            elif event.key == K_LEFT:
+            if event.key == K_LEFT:
                 cursor.move_left()
-            elif event.key == K_RIGHT:
+            if event.key == K_RIGHT:
                 cursor.move_right()
-            elif event.key == K_SPACE:
+            if event.key == K_SPACE:
                 board.swap_cells(cursor.x, cursor.y, cursor.x + 1, cursor.y)
     pygame.display.update()
     fpsClock.tick(30)
