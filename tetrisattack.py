@@ -14,6 +14,11 @@ blue = pygame.image.load('images/blue.png')
 green = pygame.image.load('images/green.png')
 yellow = pygame.image.load('images/yellow.png')
 purple = pygame.image.load('images/purple.png')
+gray_map = {'red': pygame.image.load('images/red_clear.png'),
+            'blue': pygame.image.load('images/blue_clear.png'),
+            'green': pygame.image.load('images/green_clear.png'),
+            'yellow': pygame.image.load('images/yellow_clear.png'),
+            'purple': pygame.image.load('images/purple_clear.png')}
 testFont = pygame.font.Font('freesansbold.ttf', 32)
 
 def three_consecutive_same(li):
@@ -26,9 +31,8 @@ class Block:
     fall_delay_time = 12
     gravity_time = 3 # Number of frames to fall 1 cell
     clear_color = pygame.Color(150, 150, 150)
-    def __init__(self, color):
-        self.color = color
-        self.shown_color = color
+    def __init__(self, color_info):
+        self.color_name, self.color = color_info
         self.timestep = 0
         self.clear_time = 45
         self.fall_delay = self.fall_delay_time
@@ -46,7 +50,7 @@ class Board:
     height = 9
     def __init__(self):
         self.cells = [[None] * self.width for _ in range(self.height)]
-        self.tile_colors = [red, blue, green, yellow, purple]
+        self.tile_colors = [('red', red), ('blue', blue), ('green', green), ('yellow', yellow), ('purple', purple)]
         self.next_row = [None] * self.width
         self.generate_next_row()
         self.has_lost = False
@@ -54,10 +58,11 @@ class Board:
         self.time_to_spawn = 150
         self.chain = 0
         self.num_matched = 0
+        self.score = 0
     def get_cell(self, x, y):
         block = self.cells[y][x]
         if block:
-            return block.shown_color
+            return block.color
         else:
             return None
     def generate_next_row(self):
@@ -99,8 +104,8 @@ class Board:
         matched = set()
         if block_type != None and not self.cells[y][x].clearing:
             if x + 2 < self.width:
-                if self.get_cell(x+1, y)==block_type and not self.cells[y][x+1].is_falling and not self.cells[y][x+1].clearing:
-                    if self.get_cell(x+2, y)==block_type and not self.cells[y][x+2].is_falling and not self.cells[y][x+2].clearing:
+                if self.get_cell(x+1, y) == block_type and not self.cells[y][x+1].is_falling and not self.cells[y][x+1].clearing:
+                    if self.get_cell(x+2, y) == block_type and not self.cells[y][x+2].is_falling and not self.cells[y][x+2].clearing:
                         matched.add((x+1,y))
                         matched.add((x+2,y))
                         matched.add((x,y))
@@ -122,15 +127,15 @@ class Board:
         return used_blocks
     def clear_matches(self):
         matched = self.matched_blocks()
-        is_chain = False
+        self.chain += 1
         if matched:
             for x, y in matched:
-                is_chain = is_chain or self.cells[y][x].fell_from_match
                 self.cells[y][x].clearing = True
                 self.cells[y][x].shown_color = Block.clear_color
             print("Matched %d blocks" % self.num_matched)
-        if is_chain:
-            self.chain += 1
+            print("Chain %d" % self.chain)
+    def reset_chain(self):
+        self.chain = 0
     def timestep(self):
         """
         Order of events
@@ -165,6 +170,7 @@ class Board:
                     if cell.clearing:
                         if cell.timestep >= cell.clear_time:
                             self.cells[j][i] = None
+                            self.score += 10 * (self.chain ** 2) * (self.num_matched // 2)
                             # Tell all above that they are falling from a match
                             for k in range(j):
                                 if self.cells[k][i]:
@@ -188,6 +194,13 @@ class Board:
         self.time += 1
         if self.time % self.time_to_spawn == 0:
             self.add_next_row()
+        should_reset = True
+        for i in range(self.width):
+            for j in range(self.height):
+                if self.cells[j][i] and self.cells[j][i].clearing:
+                    should_reset = False
+        if should_reset:
+            self.reset_chain()
                 
 class Cursor:
     """Represents the cursor for the self."""
@@ -217,16 +230,16 @@ for _ in range(5):
 while True:
     windowSurfaceObj.fill(white)
     board.timestep()
-    if board.num_matched > 0:
-        matchedObj = testFont.render("Matched %d" % board.num_matched, False, (0,0,0))
-        windowSurfaceObj.blit(matchedObj, (400, 150))
+    scoreObj = testFont.render("Score: %d" % board.score, False, (0,0,0))
+    windowSurfaceObj.blit(scoreObj, (400, 150))
     for i in range(board.width):
         for j in range(board.height):
             color = board.get_cell(i,j)
             if color is None:
                 color = (255,255,255)
-            if color == Block.clear_color or color == (255, 255, 255):
                 pygame.draw.rect(windowSurfaceObj, color, (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
+            elif board.cells[j][i].clearing:
+                windowSurfaceObj.blit(gray_map[board.cells[j][i].color_name], (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
             else:
                 windowSurfaceObj.blit(color, (leftOffset + cellSize * i, topOffset + cellSize * j, cellSize, cellSize))
        
