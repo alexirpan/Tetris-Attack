@@ -35,7 +35,7 @@ class Block:
     def __init__(self, color_info):
         self.color_name, self.color = color_info
         self.timestep = 0
-        self.clear_time = 45
+        self.clear_time = 50
         self.fall_delay = self.fall_delay_time
         self.is_falling = False # Changed by Board class
         self.fell_from_match = False # Changed to True by Board class
@@ -50,6 +50,8 @@ class Block:
 class Board:
     width = 7
     height = 9
+    chain_grace_period = Block.gravity_time
+    time_to_spawn = 100
     def __init__(self):
         self.cells = [[None] * self.width for _ in range(self.height)]
         self.tile_colors = [('red', red), ('blue', blue), ('green', green), ('yellow', yellow), ('purple', purple)]
@@ -57,8 +59,8 @@ class Board:
         self.generate_next_row()
         self.has_lost = False
         self.time = 0 # Number of frames since start
-        self.time_to_spawn = 150
         self.chain = 0
+        self.time_since_chain_end = 0
         self.num_matched = 0
         self.score = 0
     def get_cell(self, x, y):
@@ -196,13 +198,15 @@ class Board:
         self.time += 1
         if self.time % self.time_to_spawn == 0:
             self.add_next_row()
-        should_reset = True
+        no_clearing = True
         for i in range(self.width):
             for j in range(self.height):
                 if self.cells[j][i] and self.cells[j][i].clearing:
-                    should_reset = False
-        if should_reset:
-            self.reset_chain()
+                    no_clearing = False
+        if no_clearing and self.chain > 0:
+            self.time_since_chain_end += 1
+            if self.time_since_chain_end > Board.chain_grace_period:
+                self.reset_chain()
                 
 class Cursor:
     """Represents the cursor for the self."""

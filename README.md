@@ -1,4 +1,4 @@
 Tetris-Attack
 =============
 
-Exploring PyGame module
+Exploring PyGame module. Made for a hackathon
