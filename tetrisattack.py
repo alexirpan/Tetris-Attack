@@ -23,7 +23,7 @@ def three_consecutive_same(li):
     return False
 
 class Block:
-    first_gravity_time = 15
+    fall_delay_time = 12
     gravity_time = 3 # Number of frames to fall 1 cell
     clear_color = pygame.Color(150, 150, 150)
     def __init__(self, color):
@@ -31,8 +31,8 @@ class Block:
         self.shown_color = color
         self.timestep = 0
         self.clear_time = 45
+        self.fall_delay = self.fall_delay_time
         self.is_falling = False # Changed by Board class
-        self.has_fell_one_cell = False
         self.fell_from_match = False # Changed to True by Board class
         self.clearing = False
     def step(self):
@@ -40,8 +40,6 @@ class Block:
             self.timestep += 1
         else:
             self.timestep = 0
-        if self.just_fell:
-            self.just_fell = False
     
 class Board:
     width = 7
@@ -161,29 +159,30 @@ class Board:
         # Doing bottom up makes it work as intended
         for i in range(self.width):
             for j in range(self.height - 1, -1, -1):
-                if self.cells[j][i]:
-                    self.cells[j][i].step()
-                    if self.cells[j][i].clearing:
-                        if self.cells[j][i].timestep >= self.cells[j][i].clear_time:
+                cell = self.cells[j][i]
+                if cell:
+                    cell.step()
+                    if cell.clearing:
+                        if cell.timestep >= cell.clear_time:
                             self.cells[j][i] = None
-                    else:
-                        if self.cless[j][i].has_fell_one_cell:
-                            time_goal = Block.gravity_time
-                        else:
-                            time_goal = Block.first_gravity_time
-                        if self.cells[j][i].timestep >= time_goal:
-                            # Hope that this will only occur in valid situations. Probably does...
-                            self.cells[j][i].timestep = 0
-                            self.cells[j][i].has_fell_one_cell = True
-                            self.cells[j+1][i] = self.cells[j][i]
-                            self.cells[j][i] = None
-                            # If still falling, hasn't just fell
-                            self.cells[j+1][i].just_fell = True
-                            for k in range(j+2, self.height):
-                                if self.cells[k][i] is None:
-                                    self.cells[j+1][i].just_fell = False
-                                    break
-                            self.cells[j][i].has_fell_one_cell = False
+                            # Tell all above that they are falling from a match
+                            for k in range(j):
+                                if self.cells[k][i]:
+                                    self.cells[k][i].fell_from_match = True
+                    elif cell.fall_delay > 0 and cell.timestep >= cell.fall_delay:
+                        # Hope that this will only occur in valid situations. Probably does...
+                        cell.fall_delay = 0
+                        cell.timestep = 0
+                    elif cell.timestep >= cell.gravity_time:
+                        self.cells[j+1][i] = cell
+                        self.cells[j][i] = None
+                        # Recompute is falling
+                        cell.is_falling = False
+                        for k in range(j+2, self.height):
+                            if self.cells[k][i] is None:
+                                cell.is_falling = True
+                        if not cell.is_falling:
+                            cell.fall_delay = Block.fall_delay_time
                         
         self.clear_matches()
         self.time += 1
