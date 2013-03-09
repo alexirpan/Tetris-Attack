@@ -19,6 +19,7 @@ gray_map = {'red': pygame.image.load('images/red_clear.png'),
             'green': pygame.image.load('images/green_clear.png'),
             'yellow': pygame.image.load('images/yellow_clear.png'),
             'purple': pygame.image.load('images/purple_clear.png')}
+clear_map = dict([(c, pygame.image.load('images/%s2.png' % c)) for c in ('red', 'blue', 'green', 'yellow', 'purple')])
 testFont = pygame.font.Font('freesansbold.ttf', 32)
 
 def three_consecutive_same(li):
@@ -237,7 +238,9 @@ while True:
     pygame.draw.line(windowSurfaceObj, (0,0,0), (5,410), (294, 410), 5)
     board.timestep()
     scoreObj = testFont.render("Score: %d" % board.score, False, (0,0,0))
-    windowSurfaceObj.blit(scoreObj, (400, 150))
+    windowSurfaceObj.blit(scoreObj, (350, 150))
+    # chainObj = testFont.render("Chain %d" % board.chain, False, (0,0,0))
+    # windowSurfaceObj.blit(chainObj, (350, 200))
     botVisiblePixels = int(cellSize * (board.time % board.time_to_spawn) / board.time_to_spawn)
     netTopOffset = topOffset - botVisiblePixels
     for i in range(board.width):
@@ -247,18 +250,18 @@ while True:
                 color = (255,255,255)
                 pygame.draw.rect(windowSurfaceObj, color, (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
             elif board.cells[j][i].clearing:
-                windowSurfaceObj.blit(gray_map[board.cells[j][i].color_name], (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
+                windowSurfaceObj.blit(clear_map[board.cells[j][i].color_name], (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
             else:
                 windowSurfaceObj.blit(color, (leftOffset + cellSize * i, netTopOffset + cellSize * j, cellSize, cellSize))
     row = board.next_row
     for i in range(board.width):
         cell = row[i]
-        windowSurfaceObj.blit(cell.color, (leftOffset + cellSize * i, netTopOffset + cellSize * 9), (0,0,cellSize, botVisiblePixels))
+        windowSurfaceObj.blit(gray_map[cell.color_name], (leftOffset + cellSize * i, netTopOffset + cellSize * 9), (0,0,cellSize, botVisiblePixels))
     
     minutes = board.time // 1800
     sec = (board.time - 1800 * minutes) // 30
     timeObj = testFont.render("Time %d:%02d" % (minutes, sec), False, (0,0,0))
-    windowSurfaceObj.blit(timeObj, (400,100))
+    windowSurfaceObj.blit(timeObj, (350,100))
     
     cursorObj = pygame.image.load('images/cursor.png')
     windowSurfaceObj.blit(cursorObj, (cellSize * cursor.x + leftOffset - 10, cellSize * cursor.y + netTopOffset - 10))
