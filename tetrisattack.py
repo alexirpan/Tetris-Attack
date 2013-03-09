@@ -128,8 +128,8 @@ class Board:
         return used_blocks
     def clear_matches(self):
         matched = self.matched_blocks()
-        self.chain += 1
         if matched:
+            self.chain += 1
             for x, y in matched:
                 self.cells[y][x].clearing = True
                 self.cells[y][x].shown_color = Block.clear_color
